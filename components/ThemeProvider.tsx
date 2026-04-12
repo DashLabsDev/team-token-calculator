@@ -28,13 +28,34 @@ export function ThemeProvider({
   storageKey = "ai-calc-theme",
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = useState(false);
 
+  // Fix flash-of-wrong-theme by applying theme immediately on mount (before first render)
   useEffect(() => {
+    // Apply stored theme or system preference before rendering
     const stored = localStorage.getItem(storageKey) as Theme | null;
-    if (stored) setTheme(stored);
-  }, [storageKey]);
+    const activeTheme = stored || defaultTheme;
+    
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
 
+    if (activeTheme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(activeTheme);
+    }
+
+    setTheme(activeTheme);
+    setMounted(true);
+  }, [storageKey, defaultTheme]);
+
+  // Apply theme changes
   useEffect(() => {
+    if (!mounted) return;
+    
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
 
@@ -47,7 +68,7 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   const value = {
     theme,
